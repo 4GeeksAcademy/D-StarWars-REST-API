@@ -1,11 +1,11 @@
 import os
-from flask import Flask, request, jsonify, url_for
+from flask import Flask, request, jsonify, url_for, make_response
 from flask_migrate import Migrate
 from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User, People, Planets
+from models import db, User, People, Planets, Favorites
 #from models import Person
 
 app = Flask(__name__)
@@ -29,7 +29,7 @@ def handle_invalid_usage(error):
     return jsonify(error.to_dict()), error.status_code
 
 # generate sitemap with all your endpoints
-@app.route('/')git 
+@app.route('/')
 def sitemap():
     return generate_sitemap(app)
 
@@ -54,6 +54,13 @@ def handle_get_all_people():
         "description": person.description
     } for person in people]), 200
 
+@app.route('/favorites/planets/<int:planets_id>', methods=['POST'])
+def add_fav_planet(planets_id):
+    data = request.get_json()
+    new_Fav_Planet = Favorites(user_id=data["user_id"], planets_id = planets_id)
+    db.session.add(new_Fav_Planet)
+    db.session.commit()
+    return jsonify(new_Fav_Planet.serialize()), 200
 
 @app.route('/planets/<int:planet_id>', methods=['GET'])
 def handle_get_one_planet(planet_id):
@@ -82,19 +89,16 @@ def get_users():
     users = User.query.all()
     return jsonify([{
         "id": user.id,
-        "name": user.name,
+        "email": user.email,
     } for user in users]), 200
+
 
 @app.route('/user/favorites', methods=['GET'])
 def get_user_favorites():
-    user = User.query.get()
-    if user:
-        favorites = user.favorites
-        return jsonify([{
-            "id": favorite.id,
-            "name": favorite.name,
-            "planet": favorite.planet,
-            "person": favorite.person  
-        } for favorite in favorites]), 200
-    else:
-        return jsonify({"error": "User not found"}), 404
+    faves= Favorites.query.all()
+    all_faves = list(map(lambda x: x.serialize(), faves))
+    return jsonify(all_faves)
+
+
+
+
