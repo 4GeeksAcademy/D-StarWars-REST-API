@@ -33,6 +33,14 @@ def handle_invalid_usage(error):
 def sitemap():
     return generate_sitemap(app)
 
+@app.route('/favorites/people/<int:people_id>', methods=['POST'])
+def add_fav_person(people_id):
+    data = request.get_json()
+    new_Fav_Person = Favorites(user_id=data["user_id"], people_id = people_id)
+    db.session.add(new_Fav_Person)
+    db.session.commit()
+    return jsonify(new_Fav_Person.serialize()), 200
+
 @app.route('/people/<int:people_id>', methods=['GET'])
 def handle_get_one_person(people_id):
     person = People.query.get(people_id)
@@ -98,6 +106,24 @@ def get_user_favorites():
     faves= Favorites.query.all()
     all_faves = list(map(lambda x: x.serialize(), faves))
     return jsonify(all_faves)
+
+@app.route('/favorites/planets/<int:planets_id>', methods=['DELETE'])
+def delete_fav_planet(planets_id):
+    data = request.get_json()
+    user_id = data["user_id"]
+    remove_planet = Favorites.query.filter_by(planets_id=planets_id, user_id=user_id).first()
+    db.session.delete(remove_planet)
+    db.session.commit()
+    return jsonify("removed planet successfully"), 200
+
+@app.route('/favorites/people/<int:person_id>', methods=['DELETE'])
+def delete_fav_person(person_id):
+    data = request.get_json()
+    user_id = data["user_id"]
+    remove_person = Favorites.query.filter_by(person_id=person_id, user_id=user_id).first()
+    db.session.delete(remove_person)
+    db.session.commit()
+    return jsonify("removed person successfully"), 200
 
 
 
